@@ -305,3 +305,71 @@ npm start
 # → http://localhost:3000/health
 ```
 <img width="1912" height="1052" alt="image" src="https://github.com/user-attachments/assets/b9ec7244-6a1a-4f8e-a2ef-f2977ba5a019" />
+# Actividad 5 — Preguntas Conceptuales
+
+## 5. ¿Cuál es la diferencia fundamental entre CI y CD?
+
+La **Integración Continua (CI)** es el proceso de integrar cambios de código frecuentemente al repositorio principal, ejecutando builds y pruebas automatizadas en cada commit o pull request. Su objetivo es detectar errores de integración lo antes posible.
+
+La **Entrega Continua (CD)** extiende CI al automatizar el despliegue del código hacia entornos de *staging* o producción una vez que las pruebas de CI pasan satisfactoriamente. Mientras CI asegura que el código funciona, CD asegura que el código puede desplegarse (*Continuous Delivery*) o se despliega automáticamente (*Continuous Deployment*).
+
+> **En resumen:** CI = integrar y verificar | CD = desplegar automáticamente.
+
+---
+
+## 6. ¿Qué es un GitHub self-hosted runner y cuándo usarlo?
+
+Un *self-hosted runner* es una máquina propia (servidor físico, VM, o contenedor) que el usuario registra en GitHub para ejecutar workflows de GitHub Actions, en lugar de usar los runners hospedados por GitHub.
+
+**Se necesita cuando:**
+* La aplicación requiere hardware específico (GPU, arquitectura ARM, equipos industriales).
+* El workflow necesita acceso a recursos de red privada (servidores internos, bases de datos on-premise).
+* Se requiere reducir costos en pipelines de alto volumen (los runners de GitHub tienen límites en el plan gratuito).
+* Existen requisitos de *compliance* o seguridad que prohíben ejecutar código en infraestructura de terceros.
+* Se necesitan dependencias de sistema muy específicas preinstaladas.
+
+---
+
+## 7. ¿Cuál es el propósito de los GitHub Environments y cómo se usan?
+
+Los GitHub Environments son configuraciones nombradas de despliegue (ej: *staging*, *production*) que permiten:
+
+* Definir reglas de protección: aprobación requerida de revisores antes de desplegar.
+* Asociar *secrets* específicos por entorno (distintos del repositorio general).
+* Establecer *wait timers* para retrasar un deploy.
+* Registrar el historial de deployments por entorno.
+
+**Uso en workflows:**
+
+```yaml
+jobs:
+  deploy:
+    environment: production   # activa las reglas y secrets de este environment
+    steps:
+      - run: echo ${{ secrets.API_KEY }}  # secret específico del environment
+```
+## 8. ¿Qué es una rollback strategy y cómo se implementaría en un pipeline CD?
+
+Una **rollback strategy** es el plan para revertir el sistema a una versión anterior estable cuando un deployment falla o introduce errores en producción.
+
+**Implementación en un pipeline CD:**
+
+*   **Versionado de releases:** usar tags de Git (`v1.0.0`, `v1.1.0`) para identificar versiones desplegables.
+*   **Docker tags:** mantener imágenes anteriores en Docker Hub (`app:v1.0.0`, `app:stable`).
+*   **Rollback automático:** detectar fallos post-deploy con *health checks* y disparar un re-deploy de la versión anterior.
+
+**Ejemplo en GitHub Actions:**
+
+```yaml
+- name: Health check post-deploy
+  run: |
+    sleep 30
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.APP_URL }}/health)
+    if [ "$STATUS" != "200" ]; then
+      # Re-desplegar la última versión estable
+      curl -X POST "[https://api.render.com/v1/services/$](https://api.render.com/v1/services/$){{ secrets.RENDER_SERVICE_ID }}/deploys" \
+        -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+        -d "{\"commitId\": \"${{ secrets.LAST_STABLE_COMMIT }}\"}"
+      exit 1
+    fi
+```
