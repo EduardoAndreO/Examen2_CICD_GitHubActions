@@ -18,6 +18,10 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_URL=postgresql://${DB_USER:-admin}:${DB_PASSWORD:-secret}@db:5432/${DB_NAME:-examdb}
+      - PGUSER=${DB_USER:-admin}
+      - PGPASSWORD=${DB_PASSWORD:-secret}
+      - PGDATABASE=${DB_NAME:-examdb}
+      - PGHOST=db
     depends_on:
       db:
         condition: service_healthy   # espera a que la BD esté lista
@@ -39,7 +43,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
+      test: ["CMD-SHELL", "pg_isready -U $${DB_USER:-admin} -d$${DB_NAME:-examdb}"]
       interval: 10s
       timeout: 5s
       retries: 5
