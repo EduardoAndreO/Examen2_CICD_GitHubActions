@@ -1,0 +1,56 @@
+version: '3.8'
+
+# ============================================================
+# docker-compose.yml - Examen 2, Actividad 1 Parte B
+# Servicios: app Node.js + PostgreSQL
+# Red personalizada + volumen persistente
+# Verificación: docker-compose up
+# ============================================================
+
+services:
+  # ---- Servicio 1: Aplicación Web (Node.js/Express) ----
+  web:
+    build: .
+    container_name: exam2_web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://${DB_USER:-admin}:${DB_PASSWORD:-secret}@db:5432/${DB_NAME:-examdb}
+    depends_on:
+      db:
+        condition: service_healthy   # espera a que la BD esté lista
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # ---- Servicio 2: Base de Datos (PostgreSQL) ----
+  db:
+    image: postgres:15-alpine
+    container_name: exam2_db
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      POSTGRES_DB: ${DB_NAME:-examdb}
+    # Volumen persistente: los datos sobreviven docker-compose down
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+# ---- Volumen persistente para la base de datos ----
+volumes:
+  postgres_data:
+    driver: local
+
+# ---- Red personalizada para comunicación entre servicios ----
+networks:
+  app-network:
+    driver: bridge

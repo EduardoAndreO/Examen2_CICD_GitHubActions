@@ -1,0 +1,66 @@
+# ============================================================
+# cd.yml - Actividad 3: Pipeline de Entrega Continua
+# Trigger: SOLO push a main (sin pull_request)
+# Environment: production
+# Secrets: RENDER_API_KEY, RENDER_SERVICE_ID
+# Deploy: Render.com via API
+# ============================================================
+
+name: CD Pipeline
+
+on:
+  push:
+    branches: [main]               # Solo push a main, NO pull_request
+
+jobs:
+  # ---- JOB: DEPLOY A RENDER ----
+  deploy:
+    name: Deploy to Render (Production)
+    runs-on: ubuntu-latest
+    # environment: production     # Create in repo Settings > Environments first
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar tests antes de deploy (gate de calidad)
+        run: npm test
+
+      - name: Disparar deploy en Render
+        # Render API: POST /deploys inicia un nuevo deployment
+        # NOTE: Requires GitHub repo secrets: RENDER_API_KEY, RENDER_SERVICE_ID
+        run: |
+          HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" \
+            -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"clearCache": false}')
+          
+          echo "HTTP Status: $HTTP_STATUS"
+          cat response.json
+          
+          if [ "$HTTP_STATUS" != "201" ]; then
+            echo "Deploy falló con HTTP $HTTP_STATUS"
+            exit 1
+          fi
+          
+          echo "Deploy iniciado exitosamente en Render!"
+
+      - name: Confirmación de deploy
+        run: |
+          echo "======================================"
+          echo " DEPLOYMENT EXITOSO A PRODUCCIÓN"
+          echo " Commit: ${{ github.sha }}"
+          echo " Actor:  ${{ github.actor }}"
+          echo " Rama:   ${{ github.ref_name }}"
+          echo "======================================"
+

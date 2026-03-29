@@ -1,0 +1,18 @@
+# render.yaml - Blueprint de Render
+# Este archivo configura automáticamente el servicio en Render
+# Render lo detecta automáticamente al conectar el repositorio
+
+services:
+  - type: web
+    name: exam2-cicd
+    env: node
+    region: oregon                  # Región de despliegue
+    plan: free                      # Plan gratuito de Render
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health        # Ruta de health check
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
