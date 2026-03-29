@@ -304,3 +304,4 @@ npm start
 # → http://localhost:3000
 # → http://localhost:3000/health
 ```
+<img width="1912" height="1052" alt="image" src="https://github.com/user-attachments/assets/b9ec7244-6a1a-4f8e-a2ef-f2977ba5a019" />
