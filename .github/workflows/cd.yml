@@ -17,7 +17,7 @@ jobs:
   deploy:
     name: Deploy to Render (Production)
     runs-on: ubuntu-latest
-    # environment: production     # Create in repo Settings > Environments first
+    environment: production        # GitHub Environment con protecciones
 
     steps:
       - name: Checkout código
@@ -36,8 +36,7 @@ jobs:
         run: npm test
 
       - name: Disparar deploy en Render
-        # Render API: POST /deploys inicia un nuevo deployment
-        # NOTE: Requires GitHub repo secrets: RENDER_API_KEY, RENDER_SERVICE_ID
+        # Render API: POST a /deploys inicia un nuevo deployment
         run: |
           HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" \
             -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
@@ -63,4 +62,3 @@ jobs:
           echo " Actor:  ${{ github.actor }}"
           echo " Rama:   ${{ github.ref_name }}"
           echo "======================================"
-
